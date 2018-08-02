@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
@@ -22,6 +23,7 @@ import com.github.ysl3000.bukkit.pathfinding.entity.Insentient;
 import com.github.ysl3000.bukkit.pathfinding.goals.PathfinderGoalGimmiCookie;
 import com.github.ysl3000.bukkit.pathfinding.goals.PathfinderGoalMoveToLocation;
 import com.github.ysl3000.bukkit.pathfinding.goals.TalkToStrangers;
+import com.github.ysl3000.bukkit.pathfinding.goals.notworking.PathfinderGoalFollowEntity;
 import com.github.ysl3000.bukkit.pathfinding.pathfinding.PathfinderGoal;
 import com.github.ysl3000.bukkit.pathfinding.pathfinding.PathfinderManager;
 
@@ -42,6 +44,7 @@ public class PathfinderTestPlugin extends JavaPlugin implements Listener {
     commandMap.put("chat", new Chat(pathfinderManager));
     commandMap.put("cookie", new DeliverCookie(pathfinderManager));
     commandMap.put("move", new MoveToLocation(pathfinderManager));
+    commandMap.put("follow", new FollowOwner(pathfinderManager));
     commandMap.put("print", new PrintGoal(pathfinderManager));
 
     Bukkit.getServer().getPluginManager().registerEvents(this, this);
@@ -115,15 +118,20 @@ public class PathfinderTestPlugin extends JavaPlugin implements Listener {
     @Override
     public boolean execute(Player player, List<String> args) {
 
+      ThreadLocalRandom rand = ThreadLocalRandom.current();
+
+      Location spawn = player.getLocation().add(rand.nextDouble(10),0,rand.nextDouble(10));
+
+
       Creature creature = player.getWorld()
-          .spawn(new Location(player.getWorld(), 235, 70, 246), Zombie.class);
+          .spawn(spawn, Zombie.class);
       Insentient pathfinderGoalEntity = this.pathfinderManager.getPathfindeGoalEntity(creature);
 
       if (pathfinderGoalEntity != null) {
         pathfinderGoalEntity.clearPathfinderGoals();
         pathfinderGoalEntity.clearTargetPathfinderGoals();
         pathfinderGoalEntity
-            .addPathfinderGoal(0, new PathfinderGoalGimmiCookie(pathfinderGoalEntity, creature));
+            .addPathfinderGoal(0, new PathfinderGoalGimmiCookie(pathfinderGoalEntity));
       }
 
       return true;
@@ -156,6 +164,32 @@ public class PathfinderTestPlugin extends JavaPlugin implements Listener {
       return true;
     }
   }
+
+  private class FollowOwner implements ICommand {
+
+    private PathfinderManager pathfinderManager;
+
+    private FollowOwner(PathfinderManager pathfinderManager) {
+      this.pathfinderManager = pathfinderManager;
+    }
+
+    @Override
+    public boolean execute(Player player, List<String> args) {
+
+      Zombie creature = player.getWorld().spawn(player.getLocation(), Zombie.class);
+      Insentient pathfinderGoalEntity = this.pathfinderManager.getPathfindeGoalEntity(creature);
+      if (pathfinderGoalEntity != null) {
+        pathfinderGoalEntity.clearPathfinderGoals();
+        pathfinderGoalEntity.clearTargetPathfinderGoals();
+        pathfinderGoalEntity.addPathfinderGoal(0,
+           new PathfinderGoalFollowEntity(pathfinderGoalEntity,player,5.0,0.2)
+        );
+      }
+
+      return true;
+    }
+  }
+
 
   private class PrintGoal implements ICommand {
 

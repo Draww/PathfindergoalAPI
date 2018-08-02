@@ -1,6 +1,5 @@
 package com.github.ysl3000.bukkit.pathfinding.goals.notworking;
 
-import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 
 import com.github.ysl3000.bukkit.pathfinding.entity.Insentient;
@@ -11,22 +10,21 @@ public class PathfinderGoalFollowEntity implements PathfinderGoal {
 
   private final LivingEntity entity;
   private final double moveRadius;
+  private boolean isAlreadySet;
   private Insentient pathfinderGoalEntity;
-  private double walkspeed;
+  private double walkSpeed;
 
 
   public PathfinderGoalFollowEntity(Insentient pathfinderGoalEntity, LivingEntity entity,
-      double moveRadius, double walkspeed) {
+      double moveRadius, double walkSpeed) {
     this.entity = entity;
     this.moveRadius = moveRadius;
     this.pathfinderGoalEntity = pathfinderGoalEntity;
-    this.walkspeed = walkspeed;
+    this.walkSpeed = walkSpeed;
   }
 
-  @Override
   public boolean shouldExecute() {
-    return this.pathfinderGoalEntity.getBukkitEntity().getLocation()
-        .distanceSquared(entity.getLocation()) > moveRadius;
+    return this.isAlreadySet = !this.pathfinderGoalEntity.getNavigation().isDoneNavigating();
   }
 
   /**
@@ -36,7 +34,11 @@ public class PathfinderGoalFollowEntity implements PathfinderGoal {
    */
   @Override
   public boolean shouldTerminate() {
-    return pathfinderGoalEntity.getNavigation().isDoneNavigating() || this.entity.isDead();
+    if (!this.isAlreadySet) {
+      return true;
+    }
+    return this.pathfinderGoalEntity.getBukkitEntity().getLocation()
+        .distance(this.entity.getLocation()) > this.moveRadius;
   }
 
   /**
@@ -45,7 +47,9 @@ public class PathfinderGoalFollowEntity implements PathfinderGoal {
    */
   @Override
   public void init() {
-
+    if (!this.isAlreadySet) {
+      this.pathfinderGoalEntity.getNavigation().moveTo(this.entity, walkSpeed);
+    }
   }
 
   /**
@@ -53,17 +57,10 @@ public class PathfinderGoalFollowEntity implements PathfinderGoal {
    */
   @Override
   public void execute() {
-
-    if (pathfinderGoalEntity.getBukkitEntity().getLocation()
-        .add(pathfinderGoalEntity.getBukkitEntity().getLocation().getDirection().normalize())
-        .getBlock().getType() != Material.AIR) {
-      this.pathfinderGoalEntity.getControllerJump().jump();
-    }
+    this.pathfinderGoalEntity.getControllerJump().jump();
   }
 
-  @Override
   public void reset() {
-    this.pathfinderGoalEntity.getNavigation().moveTo(this.entity, walkspeed);
-  }
 
+  }
 }
